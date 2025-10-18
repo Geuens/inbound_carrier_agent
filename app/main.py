@@ -38,7 +38,7 @@ async def verify_carrier(request: Request):
 
     if not mc_number:
         logger.warning("No MC number provided in request.")
-        return JSONResponse({"received": False, "mc_number": None, "mc_correct": False})
+        return {"received": False, "mc_number": None, "mc_correct": False}
 
     if "DOCKET1" not in carriers_df.columns:
         logger.error("CSV missing 'DOCKET1' column.")
@@ -47,11 +47,12 @@ async def verify_carrier(request: Request):
     exists = carriers_df["DOCKET1"].astype(str).str.strip().eq(mc_number).any()
     logger.info(f"MC number {mc_number} {'found' if exists else 'not found'} in dataset.")
 
-    return JSONResponse({
-        "received": exists,
+    return {
+        "received": bool(exists),
         "mc_number": mc_number,
-        "mc_correct": exists
-    })
+        "mc_correct": bool(exists)
+    }
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
