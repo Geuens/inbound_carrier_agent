@@ -30,7 +30,7 @@ except Exception as e:
 async def verify_carrier(request: Request):
     """
     Verify if the given MC number exists in the local CSV dataset.
-    Returns received=True if found, otherwise received=False.
+    Returns a clear message indicating whether the MC number is valid or not.
     """
     body = await request.json()
     mc_number = str(body.get("mc_number", "")).strip()
@@ -38,20 +38,34 @@ async def verify_carrier(request: Request):
 
     if not mc_number:
         logger.warning("No MC number provided in request.")
-        return {"received": False, "mc_number": None, "mc_correct": False}
+        return {
+            "received": False,
+            "mc_number": None,
+            "mc_correct": False,
+            "message": "No MC number provided."
+        }
 
-    if "DOCKET1" not in carriers_df.columns:
-        logger.error("CSV missing 'DOCKET1' column.")
-        raise HTTPException(status_code=500, detail="CSV missing 'DOCKET1' column")
+    if carriers_df is None or "DOCKET1" not in carriers_df.columns:
+        logger.error("CSV missing required column 'DOCKET1'.")
+        raise HTTPException(status_code=500, detail="CSV missing required column 'DOCKET1'")
 
     exists = carriers_df["DOCKET1"].astype(str).str.strip().eq(mc_number).any()
     logger.info(f"MC number {mc_number} {'found' if exists else 'not found'} in dataset.")
 
-    return {
-        "received": bool(exists),
-        "mc_number": mc_number,
-        "mc_correct": bool(exists)
-    }
+    if exists:
+        return {
+            "received": True,
+            "mc_number": mc_number,
+            "mc_correct": True,
+            "message": f"MC number {mc_number} verified successfully and found in the dataset."
+        }
+    else:
+        return {
+            "received": True,
+            "mc_number": mc_number,
+            "mc_correct": False,
+            "message": f"MC number {mc_number} not found in the dataset. Please verify it is correct."
+        }
 
 
 @app.exception_handler(Exception)
