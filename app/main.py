@@ -33,6 +33,7 @@ async def verify_carrier(request: Request):
     Returns a clear message indicating whether the MC number is valid or not.
     """
     body = await request.json()
+    logger.info(f"Raw payload bytes: {body}")
     mc_number = str(body.get("mc_number", "")).strip()
     logger.info(f"Verifying MC number: {mc_number}")
 
