@@ -10,6 +10,13 @@ from pathlib import Path
 
 app = FastAPI(title="Inbound Carrier Agent")
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 DATA_PATH = Path(__file__).parent / "data" / "Company_Census_File_20251018_small.csv"
 
 try:
