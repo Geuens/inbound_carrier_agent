@@ -26,50 +26,32 @@ except FileNotFoundError:
 except Exception as e:
     raise HTTPException(status_code=500, detail=f"Error loading carrier data: {e}")
 
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "Inbound Carrier Agent"}
-
-def verify_carrier(mc_number: str):
+@app.post("/webhook/verify")
+async def verify_carrier(request: Request):
     """
     Verify if the given MC number exists in the local CSV dataset.
-    Returns mc_correct = True if found, else False.
+    Returns received=True if found, otherwise received=False.
     """
-    mc_number = str(mc_number).strip()
+    body = await request.json()
+    mc_number = str(body.get("mc_number", "")).strip()
     logger.info(f"Verifying MC number: {mc_number}")
+
+    if not mc_number:
+        logger.warning("No MC number provided in request.")
+        return JSONResponse({"received": False, "mc_number": None, "mc_correct": False})
 
     if "DOCKET1" not in carriers_df.columns:
         logger.error("CSV missing 'DOCKET1' column.")
         raise HTTPException(status_code=500, detail="CSV missing 'DOCKET1' column")
 
     exists = carriers_df["DOCKET1"].astype(str).str.strip().eq(mc_number).any()
+    logger.info(f"MC number {mc_number} {'found' if exists else 'not found'} in dataset.")
 
-    if exists:
-        logger.info(f"MC number {mc_number} found in dataset.")
-    else:
-        logger.warning(f"MC number {mc_number} not found in dataset.")
-
-    return {"mc_number": mc_number, "mc_correct": bool(exists)}
-
-@app.post("/webhook/happyrobot")
-async def happyrobot_webhook(request: Request):
-    """
-    Receives POST requests from HappyRobot automation system.
-    Expects JSON payload with an 'event' and 'data'.
-    """
-    payload = await request.json()
-    event = payload.get("event")
-    data = payload.get("data")
-
-    print(f"Received HappyRobot event: {event}")
-    print(f"Payload: {data}")
-
-    if event == "carrier_verified":
-        print(f"Carrier verified: {data}")
-    elif event == "carrier_failed":
-        print(f"Carrier verification failed: {data}")
-
-    return JSONResponse({"received": True, "event": event})
+    return JSONResponse({
+        "received": exists,
+        "mc_number": mc_number,
+        "mc_correct": exists
+    })
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):

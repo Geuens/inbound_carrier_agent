@@ -1,0 +1,34 @@
+[
+  {
+    "load_id": "L001",
+    "origin": "Chicago, IL",
+    "destination": "Atlanta, GA",
+    "pickup_datetime": "2025-10-20T08:00:00",
+    "delivery_datetime": "2025-10-21T18:00:00",
+    "equipment_type": "Reefer",
+    "loadboard": "TruckStop",
+    "rate": 2200,
+    "notes": "Frozen goods, must stay below 0°C",
+    "weight": 42000,
+    "commodity_type": "Frozen Foods",
+    "num_of_pieces": 20,
+    "miles": 715,
+    "dimensions": "48x102x13.6"
+  },
+  {
+    "load_id": "L002",
+    "origin": "Dallas, TX",
+    "destination": "Denver, CO",
+    "pickup_datetime": "2025-10-22T09:00:00",
+    "delivery_datetime": "2025-10-23T17:00:00",
+    "equipment_type": "Flatbed",
+    "loadboard": "DAT",
+    "rate": 1800,
+    "notes": "Requires tarps",
+    "weight": 38000,
+    "commodity_type": "Steel Coils",
+    "num_of_pieces": 10,
+    "miles": 790,
+    "dimensions": "48x102x13.6"
+  }
+]
