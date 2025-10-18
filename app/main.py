@@ -3,34 +3,46 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import requests
 import os
+import logging
+import pandas as pd
+from pathlib import Path
+
 
 app = FastAPI(title="Inbound Carrier Agent")
+
+DATA_PATH = Path(__file__).parent / "data" / "Company_Census_File_20251018_small.csv"
+
+try:
+    carriers_df = pd.read_csv(DATA_PATH, dtype=str)  # Load as strings to avoid numeric mismatches
+except FileNotFoundError:
+    raise HTTPException(status_code=500, detail="Carrier data file not found")
+except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Error loading carrier data: {e}")
 
 @app.get("/")
 def root():
     return {"status": "ok", "service": "Inbound Carrier Agent"}
 
-@app.get("/verify-carrier/{mc_number}")
 def verify_carrier(mc_number: str):
     """
-    Verify carrier status using the FMCSA API.
+    Verify if the given MC number exists in the local CSV dataset.
+    Returns mc_correct = True if found, else False.
     """
-    FMCSA_API_KEY = os.getenv("FMCSA_API_KEY", "")
-    if not FMCSA_API_KEY:
-        raise HTTPException(status_code=500, detail="FMCSA_API_KEY is not configured")
+    mc_number = str(mc_number).strip()
+    logger.info(f"Verifying MC number: {mc_number}")
 
-    url = f"https://mobile.fmcsa.dot.gov/qc/services/carriers/{mc_number}?webKey={FMCSA_API_KEY}"
-    response = requests.get(url)
+    if "DOCKET1" not in carriers_df.columns:
+        logger.error("CSV missing 'DOCKET1' column.")
+        raise HTTPException(status_code=500, detail="CSV missing 'DOCKET1' column")
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="FMCSA lookup failed")
+    exists = carriers_df["DOCKET1"].astype(str).str.strip().eq(mc_number).any()
 
-    data = response.json()
-    return {
-        "mc_number": mc_number,
-        "status": data.get("content", {}).get("carrier", {}).get("operatingStatus"),
-        "details": data.get("content", {}).get("carrier", {})
-    }
+    if exists:
+        logger.info(f"MC number {mc_number} found in dataset.")
+    else:
+        logger.warning(f"MC number {mc_number} not found in dataset.")
+
+    return {"mc_number": mc_number, "mc_correct": bool(exists)}
 
 @app.post("/webhook/happyrobot")
 async def happyrobot_webhook(request: Request):
